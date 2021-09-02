@@ -1,3 +1,8 @@
+"""
+Boilerplate taken from
+https://realpython.com/how-to-make-a-discord-bot-python/#what-is-a-bot
+"""
+
 import os
 from dotenv import load_dotenv
 
@@ -13,15 +18,9 @@ bot = commands.Bot(command_prefix="-")
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
 
-@bot.event
-async def on_message(message):
-    if (message.author == bot.user):
-        return
-    
-    text = "This bot is stupid."
-
-    if message.content:
-        response = text
-        await message.channel.send(response)
+@bot.command(name='test')
+async def test_bot(messageBox):
+    response = "This is a test."
+    await messageBox.send(response)
 
 bot.run(TOKEN)
