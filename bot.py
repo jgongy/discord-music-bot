@@ -11,7 +11,6 @@ from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-CHANNEL = os.getenv("CHANNEL")
 
 bot = commands.Bot(command_prefix="-")
 
