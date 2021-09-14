@@ -41,7 +41,13 @@ async def play(context, *args):
 
 @bot.command(name="stop")
 async def stop(context):
-    voice_client = bot.voice_clients.pop()
+    voice_clients = bot.voice_clients
+    if (len(voice_clients) == 0):
+        # Bot is not playing in a voice channel
+        await context.send("I'm not playing anything right now!")
+        return
+
+    voice_client = voice_clients.pop()
     await voice_client.disconnect()
     
     
