@@ -65,11 +65,20 @@ bot = commands.Bot(command_prefix="-")
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
+    print(f"{bot.user} has connected to Discord!")
 
 @bot.command(name="play")
 async def play(context, *args):
-    print("Test")
+   await stream(context, args[0])
+
+async def stream(context, url):
+    async with context.typing():
+        player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
+        context.voice_client.play(player,
+                                  after=lambda e: print(f"Player error: {e}") if e else None)
+    
+    await context.send(f"Now playing: {player.title}")
+
 
 @play.before_invoke
 async def join_channel(context):
