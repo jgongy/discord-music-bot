@@ -65,15 +65,29 @@ class YTDLSource(discord.PCMVolumeTransformer):
 COM_PREFIX = "-"
 bot = commands.Bot(command_prefix=COM_PREFIX)
 
+song_queue = deque()
+
 @bot.event
 async def on_ready():
     print(f"{bot.user} has connected to Discord!")
+
+def play_next(context, e):
+    if (e):
+        print(f"Player error: {e}")
+        return
+
+    if (not song_queue):
+        # No songs in the queue
+        return
+    
+    url = song_queue.pop()
+    bot.loop.create_task(stream(context, url))
 
 async def stream(context, url):
     async with context.typing():
         player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
         context.voice_client.play(player,
-                                  after=lambda e: print(f"Player error: {e}") if e else None)
+                                  after=lambda e: play_next(context, e))
     
     await context.send(f"Now playing: {player.title}")
 
@@ -83,8 +97,20 @@ async def play(context, *args):
         # No URLs were passed as arguments
         if context.voice_client.is_paused():
             context.voice_client.resume()
+        else:
+            await context.send("I have nothing to play!")
     else:
-        await stream(context, args[0])
+        if (not context.voice_client.is_playing()):
+            # Immediately play the first song
+            await stream(context, args[0])
+
+            # Queue the remaining songs
+            for i in range(1, len(args)):
+                song_queue.appendleft(args[i])
+        else:
+            for url in args:
+                song_queue.appendleft(url)
+
 
 @play.before_invoke
 async def join_channel(context):
