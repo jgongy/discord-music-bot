@@ -9,12 +9,14 @@ from dotenv import load_dotenv
 load_dotenv()
 D_TOKEN = os.getenv("DISCORD_TOKEN")
 
+from collections import deque
 
 import discord
 from discord.ext import commands
 
 import youtube_dl
 import asyncio
+
 """
 Streaming from Youtube using Youtube DL modified from
 https://github.com/Rapptz/discord.py/blob/master/examples/basic_voice.py
@@ -32,7 +34,6 @@ ytdl_format_options = {
     "default_search": "auto",
     "source_address": "0.0.0.0" # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
-
 ffmpeg_options = {
     "options": "-vn"
 }
@@ -61,15 +62,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options),
                    data=data)
 
-bot = commands.Bot(command_prefix="-")
+COM_PREFIX = "-"
+bot = commands.Bot(command_prefix=COM_PREFIX)
 
 @bot.event
 async def on_ready():
     print(f"{bot.user} has connected to Discord!")
-
-@bot.command(name="play")
-async def play(context, *args):
-   await stream(context, args[0])
 
 async def stream(context, url):
     async with context.typing():
@@ -79,6 +77,14 @@ async def stream(context, url):
     
     await context.send(f"Now playing: {player.title}")
 
+@bot.command(name="play")
+async def play(context, *args):
+    if not args:
+        # No URLs were passed as arguments
+        if context.voice_client.is_paused():
+            context.voice_client.resume()
+    else:
+        await stream(context, args[0])
 
 @play.before_invoke
 async def join_channel(context):
@@ -111,14 +117,17 @@ async def join_channel(context):
 
 @bot.command(name="stop")
 async def stop(context):
-    voice_clients = bot.voice_clients
-    if (len(voice_clients) == 0):
+    if (context.voice_client is None):
         # Bot is not playing in a voice channel
         await context.send("I'm not playing anything right now!")
         return
 
-    voice_client = voice_clients.pop()
-    await voice_client.disconnect()
+    await context.voice_client.disconnect()
+
+@bot.command(name="pause")
+async def pause(context):
+    if (context.voice_client.is_playing()):
+        context.voice_client.pause()
     
     
 bot.run(D_TOKEN)
